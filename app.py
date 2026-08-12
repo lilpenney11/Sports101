@@ -3,6 +3,7 @@ import requests
 import streamlit as st
 from datetime import datetime
 from dotenv import load_dotenv
+from engine.ranking import rank_live_games
 
 
 # -----------------------------
@@ -210,6 +211,14 @@ st.sidebar.caption("Dashboard Alpha")
 # -----------------------------
 
 mlb_games, api_status = get_mlb_games()
+ranked_mlb = rank_live_games(mlb_games) if mlb_games else []
+
+top_mlb = [
+    item
+    for item in ranked_mlb
+    if not item.get("data_warning")
+    and item["expected_value"] > 0
+][:3]
 
 
 # -----------------------------
@@ -252,6 +261,66 @@ if page == "🏠 Dashboard":
     )
 
     st.divider()
+
+    st.subheader("🏆 Today's Top 3 Market Opportunities")
+
+    if not top_mlb:
+
+        st.info(
+            "No positive market-value opportunities qualify right now."
+        )
+
+    else:
+
+        columns = st.columns(3)
+
+        for index, item in enumerate(top_mlb):
+
+            with columns[index]:
+
+                price = item["price"]
+
+                if price > 0:
+                    price_display = f"+{price}"
+                else:
+                    price_display = str(price)
+
+                with st.container(border=True):
+
+                    st.caption(
+                        f'#{index + 1} MARKET OPPORTUNITY'
+                    )
+
+                    st.subheader(item["team"])
+
+                    st.write(
+                        f'{item["away_team"]} @ '
+                        f'{item["home_team"]}'
+                    )
+
+                    st.metric(
+                        "Best Price",
+                        price_display
+                    )
+
+                    st.caption(
+                        f'Best at {item["book"]}'
+                    )
+
+                    st.metric(
+                        "Penny Score",
+                        item["green_light"]
+                    )
+
+                    st.metric(
+                        "Estimated Market EV",
+                        f'{item["expected_value"]}%'
+                    )
+
+                    st.write(
+                        f'{item["icon"]} '
+                        f'{item["rating"]}'
+                    )
 
     st.subheader("Today's Market")
 
